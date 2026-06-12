@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stromversorgung Simulator – LIST Ing</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none}
+  body{font-family:'Segoe UI',sans-serif;background:#f0f2f5;color:#1a1a2e;min-height:100vh}
+
+  header{
+    background:#E84E0F;
+    color:white;padding:10px 24px;
+    display:flex;align-items:center;gap:16px;
+    box-shadow:0 2px 14px rgba(232,78,15,0.35);
+  }
+  .logo-wrap img{height:52px;display:block;filter:none}
+  .header-divider{width:1px;height:44px;background:rgba(255,255,255,0.35);margin:0 4px}
+  header h1{font-size:1.15rem;font-weight:700;letter-spacing:.3px;line-height:1.2}
+  header span{font-size:0.75rem;opacity:.8}
+  .header-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+  .badge{
+    color:white;padding:4px 12px;border-radius:20px;
+    font-size:0.7rem;font-weight:700;background:rgba(0,0,0,0.25);
+    white-space:nowrap;border:1px solid rgba(255,255,255,0.3);
+  }
+  #exportBtn{
+    background:white;color:#E84E0F;border:none;
+    padding:7px 16px;border-radius:20px;font-size:0.75rem;
+    font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;
+    box-shadow:0 2px 8px rgba(0,0,0,0.2);transition:all .2s;
+  }
+  #exportBtn:hover{background:#fff3ef;transform:scale(1.03)}
+  #exportBtn:active{transform:scale(.97)}
+  #exportBtn svg{width:14px;height:14px}
+
+  .main{
+    display:grid;grid-template-columns:340px 1fr;
+    gap:14px;padding:14px;max-width:1500px;margin:0 auto;
+  }
+
+  .panel{background:white;border-radius:12px;padding:14px;box-shadow:0 2px 10px rgba(0,0,0,0.06)}
+  .panel h2{
+    font-size:.85rem;font-weight:700;color:#E84E0F;
+    margin-bottom:10px;padding-bottom:7px;
+    border-bottom:2px solid #fff3ef;
+    display:flex;align-items:center;gap:6px;
+  }
+  .section-title{
+    font-size:.62rem;font-weight:700;text-transform:uppercase;
+    letter-spacing:1px;color:#bbb;margin:10px 0 7px;
+  }
+  .slider-group{margin-bottom:10px}
+  .slider-label{
+    display:flex;justify-content:space-between;align-items:center;
+    margin-bottom:3px;font-size:.75rem;font-weight:600;color:#555;
+  }
+  .slider-label .val{
+    background:#fff3ef;color:#E84E0F;font-weight:700;
+    padding:1px 7px;border-radius:5px;font-size:.78rem;
+    min-width:72px;text-align:center;
+  }
+  input[type=range]{width:100%;accent-color:#E84E0F;cursor:pointer;height:5px}
+  .slider-minmax{display:flex;justify-content:space-between;font-size:.6rem;color:#ccc;margin-top:1px}
+  .divider{border:none;border-top:1px solid #f0f0f0;margin:9px 0}
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+  .toggle-label{font-size:.75rem;font-weight:600;color:#555}
+  .toggle{position:relative;width:40px;height:21px}
+  .toggle input{opacity:0;width:0;height:0}
+  .slider-toggle{
+    position:absolute;inset:0;background:#ddd;
+    border-radius:21px;cursor:pointer;transition:.3s;
+  }
+  .slider-toggle:before{
+    content:'';position:absolute;width:15px;height:15px;
+    left:3px;top:3px;background:white;border-radius:50%;transition:.3s;
+  }
+  input:checked+.slider-toggle{background:#E84E0F}
+  input:checked+.slider-toggle:before{transform:translateX(19px)}
+
+  .right{display:flex;flex-direction:column;gap:12px}
+
+  .status-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  .kpi{
+    background:white;border-radius:12px;padding:12px 10px;
+    box-shadow:0 2px 10px rgba(0,0,0,0.06);text-align:center;
+  }
+  .kpi .kpi-val{font-size:1.5rem;font-weight:800;line-height:1}
+  .kpi .kpi-label{font-size:.65rem;color:#999;margin-top:4px;font-weight:600}
+  .kpi .kpi-sub{font-size:.63rem;color:#bbb;margin-top:2px}
+  .kpi.green .kpi-val{color:#27ae60}
+  .kpi.orange .kpi-val{color:#e67e22}
+  .kpi.red .kpi-val{color:#e63946}
+  .kpi.blue .kpi-val{color:#E84E0F}
+
+  .alert{
+    padding:8px 12px;border-radius:8px;font-size:.75rem;
+    font-weight:600;margin-top:4px;
+  }
+  .alert.ok{background:#d5f5e3;color:#1e8449}
+  .alert.warn{background:#fdebd0;color:#a04000}
+  .alert.danger{background:#fadbd8;color:#922b21}
+
+  .card{
+    background:white;border-radius:12px;padding:14px;
+    box-shadow:0 2px 10px rgba(0,0,0,0.06);
+  }
+  .card h2{
+    font-size:.85rem;font-weight:700;color:#E84E0F;
+    margin-bottom:8px;padding-bottom:7px;
+    border-bottom:2px solid #fff3ef;
+    display:flex;align-items:center;gap:6px;
+  }
+  canvas#flowCanvas{width:100%;border-radius:6px;background:#f8f9fa}
+  canvas#timeChart{width:100%}
+
+  .legend{display:flex;gap:10px;flex-wrap:wrap;font-size:.68rem;margin-top:7px}
+  .legend-item{display:flex;align-items:center;gap:4px}
+  .legend-dot{width:9px;height:9px;border-radius:50%}
+
+  #exportOverlay{
+    display:none;position:fixed;inset:0;
+    background:rgba(0,0,0,.55);z-index:9999;
+    align-items:center;justify-content:center;flex-direction:column;gap:14px;
+    color:white;font-size:1rem;font-weight:600;
+  }
+  #exportOverlay.show{display:flex}
+  .spinner{
+    width:38px;height:38px;border:4px solid rgba(255,255,255,.3);
+    border-top:4px solid white;border-radius:50%;
+    animation:spin .8s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+  #appRoot{background:#f0f2f5;min-height:100vh}
+
+  /* Speicher-Info Box */
+  .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+  .info-box{
+    background:#fff3ef;border-radius:8px;padding:7px 10px;
+    font-size:.72rem;font-weight:700;color:#E84E0F;text-align:center;
+  }
+  .info-box span{display:block;font-size:.62rem;font-weight:600;color:#888;margin-bottom:2px}
+
+  /* Summary */
+  #summaryTable{display:grid;grid-template-columns:1fr 1fr;gap:4px 18px;font-size:.74rem}
+</style>
+</head>
+<body>
+<div id="appRoot">
+
+<header id="appHeader">
+  <div class="logo-wrap" style="background:white;border-radius:8px;padding:4px 10px;display:flex;align-items:center;">
+    <img id="logoImg" src="data:image/jpeg;base64,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" alt="LIST ING" style="height:52px">
+  </div>
+  <div class="header-divider"></div>
+  <div>
+    <h1>⚡ Stromversorgung Simulator</h1>
+    <span>TGA Kalkulation | Neubau Halle + Ausbau</span>
+  </div>
+  <div class="header-right">
+    <div class="badge" id="statusBadge">WIRD BERECHNET…</div>
+    <button id="exportBtn" onclick="doExport()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M12 15V3m0 12-4-4m4 4 4-4M2 17l.621 2.485A2 2 0 0 0 4.561 21h14.878a2 2 0 0 0 1.94-1.515L22 17"/>
+      </svg>
+      Als Bild speichern
+    </button>
+  </div>
+</header>
+
+<div class="main" id="mainGrid">
+  <div>
+    <div class="panel">
+      <h2>🏭 Lasten – Gebäude</h2>
+
+      <div class="section-title">Halle</div>
+      <div class="slider-group">
+        <div class="slider-label"><span>Hallenfläche</span><span class="val" id="v_halleFlaeche">10.000 m²</span></div>
+        <input type="range" id="halleFlaeche" min="1000" max="20000" step="500" value="10000">
+        <div class="slider-minmax"><span>1.000 m²</span><span>20.000 m²</span></div>
+      </div>
+      <div class="slider-group">
+        <div class="slider-label"><span>Leistungsdichte Halle</span><span class="val" id="v_halleLast">35 W/m²</span></div>
+        <input type="range" id="halleLast" min="5" max="80" step="1" value="35">
+        <div class="slider-minmax"><span>5 W/m²</span><span>80 W/m²</span></div>
+      </div>
+      <div class="slider-group">
+        <div class="slider-label"><span>Gleichzeitigkeitsfaktor Halle</span><span class="val" id="v_halleGlz">100 %</span></div>
+        <input type="range" id="halleGlz" min="10" max="100" step="5" value="100">
+        <div class="slider-minmax"><span>10 %</span><span>100 %</span></div>
+      </div>
+
+      <div class="section-title">Büro-/Ausbaufläche</div>
+      <div class="slider-group">
+        <div class="slider-label"><span>Ausbaufläche</span><span class="val" id="v_bueroFlaeche">600 m²</span></div>
+        <input type="range" id="bueroFlaeche" min="0" max="5000" step="50" value="600">
+        <div class="slider-minmax"><span>0 m²</span><span>5.000 m²</span></div>
+      </div>
+      <div class="slider-group">
+        <div class="slider-label"><span>Leistungsdichte Ausbau</span><span class="val" id="v_bueroLast">45 W/m²</span></div>
+        <input type="range" id="bueroLast" min="10" max="120" step="1" value="45">
+        <div class="slider-minmax"><span>10 W/m²</span><span>120 W/m²</span></div>
+      </div>
+      <div class="slider-group">
+        <div class="slider-label"><span>Gleichzeitigkeitsfaktor Ausbau</span><span class="val" id="v_bueroGlz">100 %</span></div>
+        <input type="range" id="bueroGlz" min="10" max="100" step="5" value="100">
+        <div class="slider-minmax"><span>10 %</span><span>100 %</span></div>
+      </div>
+
+      <hr class="divider">
+      <h2>🔌 Netzanschluss &amp; NEA</h2>
+      <div class="slider-group">
+        <div class="slider-label"><span>Netzanschluss</span><span class="val" id="v_netz">150 kVA</span></div>
+        <input type="range" id="netz" min="50" max="2000" step="25" value="150">
+        <div class="slider-minmax"><span>50 kVA</span><span>2.000 kVA</span></div>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">⚙️ NEA aktiv</span>
+        <label class="toggle"><input type="checkbox" id="neaActive"><span class="slider-toggle"></span></label>
+      </div>
+      <div class="slider-group">
+        <div class="slider-label"><span>NEA Leistung</span><span class="val" id="v_nea">500 kVA</span></div>
+        <input type="range" id="nea" min="50" max="2000" step="25" value="500">
+        <div class="slider-minmax"><span>50 kVA</span><span>2.000 kVA</span></div>
+      </div>
+      <div class="slider-group">
+        <div class="slider-label"><span>⏱️ Laufzeit NEA</span><span class="val" id="v_neaLaufzeit">72 h</span></div>
+        <input type="range" id="neaLaufzeit" min="1" max="240" step="1" value="72">
+        <div class="slider-minmax"><span>1 h</span><span>240 h (10 Tage)</span></div>
+      </div>
+
+      <hr class="divider">
+      <h2>☀️ PV-Anlage</h2>
+      <div class="toggle-row">
+        <span class="toggle-label">☀️ PV aktiv</span>
+        <label class="toggle"><input type="checkbox" id="pvActive" checked><span class="slider-toggle"></span></label>
+      </div>
+      <div class="slider-group">
+        <div class="slider-label"><span>PV Dachfläche</span><span class="val" id="v_pvFlaeche">10.000 m²</span></div>
+        <input type="range" id="pvFlaeche" min="0" max="20000" step="500" value="10000">
+        <div class="slider-minmax"><span>0 m²</span><span>20.000 m²</span></div>
+      </div>
+      <div class="slider-group">
+        <div class="slider-label"><span>PV Leistung (kWp)</span><span class="val" id="v_pvKwp">1.000 kWp</span></div>
+        <input type="range" id="pvKwp" min="0" max="3000" step="50" value="1000">
+        <div class="slider-minmax"><span>0 kWp</span><span>3.000 kWp</span></div>
+      </div>
+      <div class="slider-group">
+        <div class="slider-label"><span>PV Ertrag (akt. Tageszeit)</span><span class="val" id="v_pvErtrag">70 %</span></div>
+        <input type="range" id="pvErtrag" min="0" max="100" step="5" value="70">
+        <div class="slider-minmax"><span>Nacht 0 %</span><span>Spitze 100 %</span></div>
+      </div>
+
+      <hr class="divider">
+      <h2>🔋 Batteriespeicher</h2>
+      <div class="toggle-row">
+        <span class="toggle-label">🔋 Speicher aktiv</span>
+        <label class="toggle"><input type="checkbox" id="batActive" checked><span class="slider-toggle"></span></label>
+      </div>
+      <div class="slider-group">
+        <div class="slider-label"><span>Speicherkapazität</span><span class="val" id="v_batKapazitaet">700 kWh</span></div>
+        <input type="range" id="batKapazitaet" min="0" max="5000" step="50" value="700">
+        <div class="slider-minmax"><span>0 kWh</span><span>5.000 kWh</span></div>
+      </div>
+      <div class="slider-group">
+        <div class="slider-label"><span>Ladezustand (SoC)</span><span class="val" id="v_batSoc">70 %</span></div>
+        <input type="range" id="batSoc" min="0" max="100" step="5" value="70">
+        <div class="slider-minmax"><span>0 %</span><span>100 %</span></div>
+      </div>
+      <div class="slider-group">
+        <div class="slider-label"><span>Max. Entladeleistung</span><span class="val" id="v_batLeistung">325 kW</span></div>
+        <input type="range" id="batLeistung" min="0" max="1000" step="25" value="325">
+        <div class="slider-minmax"><span>0 kW</span><span>1.000 kW</span></div>
+      </div>
+      <div class="slider-group">
+        <div class="slider-label"><span>⏱️ Laufzeit Batterie</span><span class="val" id="v_batLaufzeit">2 h</span></div>
+        <input type="range" id="batLaufzeit" min="0.5" max="24" step="0.5" value="2">
+        <div class="slider-minmax"><span>0.5 h</span><span>24 h</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="right">
+    <div class="status-bar">
+      <div class="kpi blue" id="kpi_last">
+        <div class="kpi-val" id="kv_last">–</div>
+        <div class="kpi-label">Spitzenlast Gesamt</div>
+        <div class="kpi-sub" id="ks_last">Halle + Ausbau</div>
+      </div>
+      <div class="kpi" id="kpi_netz">
+        <div class="kpi-val" id="kv_netz">–</div>
+        <div class="kpi-label">Netzanschluss-Auslastung</div>
+        <div class="kpi-sub" id="ks_netz">von 150 kVA</div>
+      </div>
+      <div class="kpi" id="kpi_pv">
+        <div class="kpi-val" id="kv_pv">–</div>
+        <div class="kpi-label">PV Erzeugung aktuell</div>
+        <div class="kpi-sub">kW (DC→AC)</div>
+      </div>
+      <div class="kpi" id="kpi_deck">
+        <div class="kpi-val" id="kv_deck">–</div>
+        <div class="kpi-label">Versorgungsdeckung</div>
+        <div class="kpi-sub" id="ks_deck">Gesamt</div>
+      </div>
+    </div>
+
+    <div id="alertBox"></div>
+
+    <!-- Speicher-Info -->
+    <div class="card" id="speicherCard">
+      <h2>⏱️ Speicher &amp; NEA – Laufzeit-Analyse</h2>
+      <div class="info-grid">
+        <div class="info-box"><span>Batterie – verfügbare Energie</span><span id="inf_batEnergie">–</span></div>
+        <div class="info-box"><span>Batterie – Autonomiezeit</span><span id="inf_batAuto">–</span></div>
+        <div class="info-box"><span>NEA – Kraftstoffverbrauch</span><span id="inf_neaVerbrauch">–</span></div>
+        <div class="info-box"><span>NEA – Volllast-Laufzeit</span><span id="inf_neaLaufzeit">–</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>🔄 Leistungsfluss – Momentaufnahme</h2>
+      <canvas id="flowCanvas" height="220"></canvas>
+    </div>
+
+    <div class="card">
+      <h2>📊 Tagesverlauf – Leistungsbilanz (simuliert)</h2>
+      <canvas id="timeChart" height="185"></canvas>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#e63946"></div><span>Last gesamt</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f4a261"></div><span>Netzlimit</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f9c74f"></div><span>PV Erzeugung</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background:#4cc9f0"></div><span>Batterie</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background:#27ae60"></div><span>NEA</span></div>
+      </div>
+    </div>
+
+    <div class="card" id="summaryCard">
+      <h2>📋 Zusammenfassung – Eingabewerte</h2>
+      <div id="summaryTable"></div>
+      <div style="margin-top:8px;font-size:.62rem;color:#aaa">
+        Stand: <span id="exportDate"></span> &nbsp;|&nbsp; LIST Ing – TGA Kalkulation &nbsp;|&nbsp; Stromversorgung Simulator
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div id="exportOverlay">
+  <div class="spinner"></div>
+  <span>Bild wird erstellt…</span>
+</div>
+
+<script>
+// ===================== SCHUTZ =====================
+document.documentElement.style.webkitUserSelect="none";
+document.documentElement.style.userSelect="none";
+function showProtectedAlert(e){e.preventDefault();alert("Inhalt ist geschützt!");return false;}
+document.addEventListener("contextmenu",showProtectedAlert);
+document.addEventListener("keydown",function(e){
+  if((e.ctrlKey&&(e.key==='c'||e.key==='x'||e.key==='u'||e.key==='s'||e.key==='p'))||
+     e.key==='F12'||e.key==='F5'&&e.ctrlKey){showProtectedAlert(e);}
+});
+document.addEventListener("dragstart",function(e){e.preventDefault();});
+
+// ===================== LOGO als Base64 =====================
+// Logo direkt im img-Tag eingebettet
+
+// ===================== HELPERS =====================
+const $=id=>document.getElementById(id);
+const getVal=id=>parseFloat($(id).value);
+const getChk=id=>$(id).checked;
+const n=v=>v.toLocaleString('de-DE',{maximumFractionDigits:0});
+
+function updateLabels(){
+  $('v_halleFlaeche').textContent=n(getVal('halleFlaeche'))+' m²';
+  $('v_halleLast').textContent=getVal('halleLast')+' W/m²';
+  $('v_halleGlz').textContent=getVal('halleGlz')+' %';
+  $('v_bueroFlaeche').textContent=n(getVal('bueroFlaeche'))+' m²';
+  $('v_bueroLast').textContent=getVal('bueroLast')+' W/m²';
+  $('v_bueroGlz').textContent=getVal('bueroGlz')+' %';
+  $('v_netz').textContent=n(getVal('netz'))+' kVA';
+  $('v_nea').textContent=n(getVal('nea'))+' kVA';
+  $('v_neaLaufzeit').textContent=getVal('neaLaufzeit')+' h';
+  $('v_pvFlaeche').textContent=n(getVal('pvFlaeche'))+' m²';
+  $('v_pvKwp').textContent=n(getVal('pvKwp'))+' kWp';
+  $('v_pvErtrag').textContent=getVal('pvErtrag')+' %';
+  $('v_batKapazitaet').textContent=n(getVal('batKapazitaet'))+' kWh';
+  $('v_batSoc').textContent=getVal('batSoc')+' %';
+  $('v_batLeistung').textContent=n(getVal('batLeistung'))+' kW';
+  $('v_batLaufzeit').textContent=getVal('batLaufzeit')+' h';
+}
+
+function calc(){
+  const halleF=getVal('halleFlaeche'), halleL=getVal('halleLast'), halleG=getVal('halleGlz')/100;
+  const bueroF=getVal('bueroFlaeche'), bueroL=getVal('bueroLast'), bueroG=getVal('bueroGlz')/100;
+  const netzKVA=getVal('netz'), neaKVA=getVal('nea'), neaLaufzeit=getVal('neaLaufzeit');
+  const pvKwp=getVal('pvKwp'), pvErtrag=getVal('pvErtrag')/100;
+  const batKap=getVal('batKapazitaet'), batSoc=getVal('batSoc')/100;
+  const batMaxKW=getVal('batLeistung'), batLaufzeit=getVal('batLaufzeit');
+  const pvOn=getChk('pvActive'), batOn=getChk('batActive'), neaOn=getChk('neaActive');
+
+  const halleKW=halleF*halleL*halleG/1000;
+  const bueroKW=bueroF*bueroL*bueroG/1000;
+  const lastTotal=halleKW+bueroKW;
+
+  const pvKW=pvOn?pvKwp*pvErtrag*0.85:0;
+  // Batterie: Leistung limitiert durch max kW UND Energie/Laufzeit
+  const batAvailKWh=batKap*batSoc;
+  const batByEnergy=batLaufzeit>0?batAvailKWh/batLaufzeit:0;
+  const batKW=batOn?Math.min(batMaxKW,batByEnergy):0;
+  const neaKW=neaOn?neaKVA*0.8:0;
+  const netzKW=netzKVA*0.9;
+
+  const verfuegbar=netzKW+pvKW+batKW+neaKW;
+  const deckungPct=lastTotal>0?Math.min(100,verfuegbar/lastTotal*100):100;
+  const defizit=Math.max(0,lastTotal-verfuegbar);
+  const ueberschuss=Math.max(0,verfuegbar-lastTotal);
+
+  // Autonomiezeit Batterie bei aktueller Last (abzügl. Netz und PV)
+  const batBedarf=Math.max(0,lastTotal-netzKW-pvKW);
+  const batAutoStd=batBedarf>0?(batAvailKWh/batBedarf):999;
+
+  // NEA Kraftstoff: ~0.25 l/kWh Dieselgenerator
+  const neaVerbrauchLh=neaKW*0.25;
+  const neaGesamtVerbrauch=neaVerbrauchLh*neaLaufzeit;
+
+  return {halleKW,bueroKW,lastTotal,pvKW,batKW,neaKW,netzKW,
+          netzKVA,neaKVA,neaLaufzeit,pvKwp,batKap,batSoc,batMaxKW,batLaufzeit,
+          verfuegbar,deckungPct,defizit,ueberschuss,pvOn,batOn,neaOn,
+          batAvailKWh,batAutoStd,batBedarf,neaVerbrauchLh,neaGesamtVerbrauch};
+}
+
+function updateKPIs(d){
+  $('kv_last').textContent=d.lastTotal>=1000?(d.lastTotal/1000).toFixed(2)+' MW':d.lastTotal.toFixed(0)+' kW';
+  $('ks_last').textContent=`Halle: ${d.halleKW.toFixed(0)} kW | Ausbau: ${d.bueroKW.toFixed(0)} kW`;
+  $('kpi_last').className='kpi '+(d.lastTotal>1000?'red':d.lastTotal>400?'orange':'blue');
+
+  const np=d.netzKVA>0?Math.min(999,d.lastTotal/(d.netzKVA*0.9)*100).toFixed(0):0;
+  $('kv_netz').textContent=np+' %';
+  $('ks_netz').textContent=`von ${d.netzKVA} kVA (≈${(d.netzKVA*0.9).toFixed(0)} kW)`;
+  $('kpi_netz').className='kpi '+(np>150?'red':np>100?'orange':'green');
+
+  $('kv_pv').textContent=d.pvOn?d.pvKW.toFixed(0)+' kW':'— AUS';
+  $('kpi_pv').className='kpi '+(d.pvOn&&d.pvKW>0?'green':'orange');
+
+  $('kv_deck').textContent=d.deckungPct.toFixed(1)+' %';
+  $('ks_deck').textContent=d.defizit>0?`⚠️ Defizit: ${d.defizit.toFixed(0)} kW`:`✅ Überschuss: ${d.ueberschuss.toFixed(0)} kW`;
+  $('kpi_deck').className='kpi '+(d.deckungPct>=100?'green':d.deckungPct>=80?'orange':'red');
+
+  const badge=$('statusBadge');
+  if(d.deckungPct>=100){badge.textContent='✅ VOLLSTÄNDIG VERSORGT';badge.style.background='rgba(0,0,0,0.25)';}
+  else if(d.deckungPct>=80){badge.textContent='⚠️ TEILWEISE VERSORGT';badge.style.background='rgba(0,0,0,0.4)';}
+  else{badge.textContent='🚨 UNTERVERSORGUNG!';badge.style.background='rgba(0,0,0,0.5)';}
+}
+
+function updateSpeicherInfo(d){
+  $('inf_batEnergie').textContent=d.batOn?`${d.batAvailKWh.toFixed(0)} kWh`:'— Inaktiv';
+  const autoTxt=d.batOn?(d.batAutoStd>=99?'> 99 h':d.batAutoStd.toFixed(1)+' h'):'— Inaktiv';
+  $('inf_batAuto').textContent=autoTxt;
+  $('inf_neaVerbrauch').textContent=d.neaOn?`${d.neaVerbrauchLh.toFixed(0)} l/h`:'— Inaktiv';
+  $('inf_neaLaufzeit').textContent=d.neaOn?`${d.neaLaufzeit} h konfiguriert\n≈ ${d.neaGesamtVerbrauch.toFixed(0)} l Diesel`:'— Inaktiv';
+  if(d.neaOn){
+    $('inf_neaLaufzeit').innerHTML=`${d.neaLaufzeit} h konfiguriert<br><small style="font-size:.62rem;color:#b84a00">≈ ${d.neaGesamtVerbrauch.toFixed(0)} l Diesel ges.</small>`;
+  }
+}
+
+function updateAlerts(d){
+  const box=$('alertBox'); box.innerHTML='';
+  const push=(cls,txt)=>{const div=document.createElement('div');div.className='alert '+cls;div.textContent=txt;box.appendChild(div);};
+
+  if(d.lastTotal>d.netzKVA*0.9)
+    push('danger',`🚨 Netzanschluss (${d.netzKVA} kVA) reicht NICHT für Spitzenlast (${d.lastTotal.toFixed(0)} kW)! Faktor: ${(d.lastTotal/(d.netzKVA*0.9)).toFixed(1)}× Überlast.`);
+  if(d.defizit>0&&!d.neaOn)
+    push('danger',`⛔ Ungedecktes Defizit: ${d.defizit.toFixed(0)} kW — Lasten reduzieren oder NEA aktivieren!`);
+  if(d.defizit>0&&d.neaOn&&d.neaKW>=d.defizit)
+    push('warn',`⚙️ NEA überbrückt Defizit von ${d.defizit.toFixed(0)} kW — nur im Notfall/Netzausfall!`);
+  if(d.batOn&&d.batAutoStd<2&&d.batAutoStd<99)
+    push('warn',`🔋 Batterie-Autonomiezeit kritisch: nur ${d.batAutoStd.toFixed(1)} h bei aktueller Last!`);
+  if(d.batOn&&d.batSoc<0.2)
+    push('warn',`🔋 Batteriespeicher fast leer (SoC ${(d.batSoc*100).toFixed(0)}%) — nur ${d.batAvailKWh.toFixed(0)} kWh verfügbar.`);
+  if(d.pvOn&&d.pvKW>0&&d.ueberschuss>50)
+    push('ok',`☀️ PV-Überschuss: ${d.ueberschuss.toFixed(0)} kW — Einspeisung oder Batterieladung möglich.`);
+  if(d.deckungPct>=100)
+    push('ok','✅ Vollversorgung gesichert. Alle Lasten können bedient werden.');
+}
+
+function drawFlow(d){
+  const canvas=$('flowCanvas');
+  const W=canvas.offsetWidth||700; canvas.width=W; canvas.height=220;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,W,220);
+  const cx=W/2, busY=110;
+
+  const sources=[];
+  sources.push({label:`Netz\n${(d.netzKVA*0.9).toFixed(0)} kW`,kw:d.netzKW,color:'#4361ee'});
+  if(d.pvOn) sources.push({label:`PV\n${d.pvKW.toFixed(0)} kW`,kw:d.pvKW,color:'#f9c74f'});
+  if(d.batOn) sources.push({label:`Batt.\n${d.batKW.toFixed(0)} kW`,kw:d.batKW,color:'#4cc9f0'});
+  if(d.neaOn) sources.push({label:`NEA\n${d.neaKW.toFixed(0)} kW`,kw:d.neaKW,color:'#27ae60'});
+  sources.forEach((s,i)=>{s.x=(i+1)*W/(sources.length+1);});
+
+  ctx.strokeStyle='#1a1a2e'; ctx.lineWidth=5; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(40,busY); ctx.lineTo(W-40,busY); ctx.stroke();
+  ctx.fillStyle='#1a1a2e'; ctx.font='bold 9px Segoe UI'; ctx.textAlign='center';
+  ctx.fillText('SAMMELSCHIENE',cx,busY-7);
+
+  function rr(x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+    ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+    ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);
+    ctx.closePath();ctx.fill();ctx.stroke();
+  }
+
+  sources.forEach(s=>{
+    const pct=d.lastTotal>0?Math.min(1,s.kw/d.lastTotal):0;
+    ctx.strokeStyle=s.color; ctx.lineWidth=Math.max(1.5,pct*9);
+    ctx.beginPath(); ctx.moveTo(s.x,40); ctx.lineTo(s.x,busY-3); ctx.stroke();
+    ctx.fillStyle=s.color;
+    ctx.beginPath(); ctx.moveTo(s.x,busY-3); ctx.lineTo(s.x-5,busY-12); ctx.lineTo(s.x+5,busY-12); ctx.closePath(); ctx.fill();
+    ctx.fillStyle=s.color+'25'; ctx.strokeStyle=s.color; ctx.lineWidth=1.5;
+    rr(s.x-45,5,90,30,6);
+    ctx.fillStyle='#1a1a2e'; ctx.font='bold 8px Segoe UI'; ctx.textAlign='center';
+    const ln=s.label.split('\n');
+    ctx.fillText(ln[0],s.x,18); ctx.font='7px Segoe UI'; ctx.fillText(ln[1],s.x,28);
+  });
+
+  const loads=[
+    {label:`Halle\n${d.halleKW.toFixed(0)} kW`,color:'#E84E0F',frac:d.lastTotal>0?d.halleKW/d.lastTotal:0},
+    {label:`Ausbau\n${d.bueroKW.toFixed(0)} kW`,color:'#fb8500',frac:d.lastTotal>0?d.bueroKW/d.lastTotal:0}
+  ];
+  loads.forEach((l,i)=>{
+    const lx=cx+(i===0?-80:80);
+    ctx.strokeStyle=l.color; ctx.lineWidth=Math.max(1.5,l.frac*9);
+    ctx.beginPath(); ctx.moveTo(lx,busY+3); ctx.lineTo(lx,178); ctx.stroke();
+    ctx.fillStyle=l.color;
+    ctx.beginPath(); ctx.moveTo(lx,178); ctx.lineTo(lx-5,168); ctx.lineTo(lx+5,168); ctx.closePath(); ctx.fill();
+    ctx.fillStyle=l.color+'25'; ctx.strokeStyle=l.color; ctx.lineWidth=1.5;
+    rr(lx-45,180,90,30,6);
+    ctx.fillStyle='#1a1a2e'; ctx.font='bold 8px Segoe UI'; ctx.textAlign='center';
+    const ln=l.label.split('\n');
+    ctx.fillText(ln[0],lx,193); ctx.font='7px Segoe UI'; ctx.fillText(ln[1],lx,203);
+  });
+
+  const col=d.deckungPct>=100?'#27ae60':d.deckungPct>=80?'#e67e22':'#e63946';
+  ctx.beginPath(); ctx.arc(cx,busY,15,0,Math.PI*2); ctx.fillStyle=col; ctx.fill();
+  ctx.fillStyle='white'; ctx.font='bold 7px Segoe UI'; ctx.textAlign='center';
+  ctx.fillText(d.deckungPct.toFixed(0)+'%',cx,busY+3);
+}
+
+function drawTimeChart(d){
+  const canvas=$('timeChart');
+  const W=canvas.offsetWidth||700; canvas.width=W; canvas.height=185;
+  const ctx=canvas.getContext('2d'); ctx.clearRect(0,0,W,185);
+  const pad={l:50,r:14,t:10,b:26};
+  const cw=W-pad.l-pad.r, ch=185-pad.t-pad.b;
+  const pvP=[0,0,0,0,0,0.05,0.15,0.35,0.55,0.75,0.88,0.95,1,0.95,0.88,0.75,0.55,0.35,0.15,0.05,0,0,0,0];
+  const ldP=[0.3,0.25,0.25,0.25,0.28,0.35,0.55,0.75,0.95,1,1,0.98,0.95,0.98,1,0.98,0.9,0.75,0.6,0.5,0.45,0.4,0.38,0.33];
+  const maxY=Math.max(d.lastTotal*1.15,d.pvKW*1.1,d.netzKW*1.15,200);
+  const toY=v=>pad.t+ch-(v/maxY)*ch;
+  const toX=h=>pad.l+(h/23)*cw;
+
+  ctx.strokeStyle='#eee'; ctx.lineWidth=1;
+  for(let i=0;i<=5;i++){
+    const y=pad.t+(i/5)*ch;
+    ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(pad.l+cw,y); ctx.stroke();
+    ctx.fillStyle='#aaa'; ctx.font='7px Segoe UI'; ctx.textAlign='right';
+    ctx.fillText(((1-i/5)*maxY).toFixed(0)+' kW',pad.l-4,y+3);
+  }
+  for(let h=0;h<24;h+=4){
+    ctx.fillStyle='#aaa'; ctx.font='7px Segoe UI'; ctx.textAlign='center';
+    ctx.fillText(h+':00',toX(h),185-7);
+  }
+
+  ctx.strokeStyle='#f4a261'; ctx.lineWidth=1.5; ctx.setLineDash([5,4]);
+  ctx.beginPath(); ctx.moveTo(pad.l,toY(d.netzKW)); ctx.lineTo(pad.l+cw,toY(d.netzKW)); ctx.stroke();
+  ctx.setLineDash([]);
+
+  if(d.pvOn){
+    ctx.fillStyle='#f9c74f28';
+    ctx.beginPath();
+    pvP.forEach((p,h)=>{const y=toY(d.pvKW*p);h===0?ctx.moveTo(toX(h),y):ctx.lineTo(toX(h),y);});
+    ctx.lineTo(toX(23),toY(0)); ctx.lineTo(toX(0),toY(0)); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle='#f9c74f'; ctx.lineWidth=2;
+    ctx.beginPath();
+    pvP.forEach((p,h)=>{const y=toY(d.pvKW*p);h===0?ctx.moveTo(toX(h),y):ctx.lineTo(toX(h),y);});
+    ctx.stroke();
+  }
+
+  if(d.batOn&&d.batKW>0){
+    ctx.strokeStyle='#4cc9f0'; ctx.lineWidth=1.5; ctx.setLineDash([4,3]);
+    ctx.beginPath();
+    ldP.forEach((p,h)=>{
+      const need=d.lastTotal*p, pvNow=d.pvOn?d.pvKW*pvP[h]:0;
+      const bv=Math.min(d.batKW,Math.max(0,need-d.netzKW-pvNow));
+      h===0?ctx.moveTo(toX(h),toY(bv)):ctx.lineTo(toX(h),toY(bv));
+    });
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  ctx.strokeStyle='#e63946'; ctx.lineWidth=2.5;
+  ctx.beginPath();
+  ldP.forEach((p,h)=>{const y=toY(d.lastTotal*p);h===0?ctx.moveTo(toX(h),y):ctx.lineTo(toX(h),y);});
+  ctx.stroke();
+}
+
+function updateSummary(d){
+  const rows=[
+    ['Hallenfläche',n(getVal('halleFlaeche'))+' m²'],
+    ['LD Halle',getVal('halleLast')+' W/m²'],
+    ['GZF Halle',getVal('halleGlz')+' %'],
+    ['Ausbaufläche',n(getVal('bueroFlaeche'))+' m²'],
+    ['LD Ausbau',getVal('bueroLast')+' W/m²'],
+    ['GZF Ausbau',getVal('bueroGlz')+' %'],
+    ['Netzanschluss',n(getVal('netz'))+' kVA'],
+    ['NEA',getChk('neaActive')?n(getVal('nea'))+' kVA | '+getVal('neaLaufzeit')+' h':'Inaktiv'],
+    ['PV',getChk('pvActive')?n(getVal('pvKwp'))+' kWp | '+getVal('pvErtrag')+' %':'Inaktiv'],
+    ['Batterie',getChk('batActive')?n(getVal('batKapazitaet'))+' kWh | SoC '+getVal('batSoc')+' % | '+getVal('batLaufzeit')+' h':'Inaktiv'],
+    ['→ Spitzenlast',d.lastTotal.toFixed(0)+' kW'],
+    ['→ Verfügbar',d.verfuegbar.toFixed(0)+' kW'],
+    ['→ Deckung',d.deckungPct.toFixed(1)+' %'],
+    ['→ Batterie-Autonomie',d.batOn?(d.batAutoStd>=99?'>99 h':d.batAutoStd.toFixed(1)+' h'):'—'],
+  ];
+  $('summaryTable').innerHTML=rows.map(([k,v])=>
+    `<div style="color:#888;font-weight:600;font-size:.72rem">${k}</div><div style="font-weight:700;color:#1a1a2e;font-size:.72rem">${v}</div>`
+  ).join('');
+  const now=new Date();
+  $('exportDate').textContent=now.toLocaleDateString('de-DE')+' '+now.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+}
+
+function update(){
+  updateLabels();
+  const d=calc();
+  updateKPIs(d);
+  updateAlerts(d);
+  updateSpeicherInfo(d);
+  drawFlow(d);
+  drawTimeChart(d);
+  updateSummary(d);
+}
+
+async function doExport(){
+  const overlay=$('exportOverlay');
+  overlay.classList.add('show');
+  await new Promise(r=>setTimeout(r,120));
+  try{
+    const dpr=2;
+    ['flowCanvas','timeChart'].forEach(id=>{
+      const c=$(id); const w=c.offsetWidth,h=c.offsetHeight;
+      c.width=w*dpr; c.height=h*dpr; c.getContext('2d').scale(dpr,dpr);
+    });
+    const d=calc(); drawFlow(d); drawTimeChart(d);
+    const canvas=await html2canvas($('appRoot'),{
+      scale:1.5,useCORS:true,allowTaint:true,
+      backgroundColor:'#f0f2f5',
+      ignoreElements:el=>el.id==='exportOverlay',
+      windowWidth:1500,
+    });
+    ['flowCanvas','timeChart'].forEach(id=>{
+      const c=$(id); c.width=c.offsetWidth; c.height=c.offsetHeight;
+    });
+    drawFlow(d); drawTimeChart(d);
+    const link=document.createElement('a');
+    const ts=new Date().toISOString().slice(0,16).replace('T','_').replace(':','');
+    link.download=`Stromversorgung_LIST_${ts}.png`;
+    link.href=canvas.toDataURL('image/png');
+    link.click();
+  }catch(e){alert('Export fehlgeschlagen: '+e.message);}
+  overlay.classList.remove('show');
+}
+
+['halleFlaeche','halleLast','halleGlz','bueroFlaeche','bueroLast','bueroGlz',
+ 'netz','nea','neaLaufzeit','pvFlaeche','pvKwp','pvErtrag',
+ 'batKapazitaet','batSoc','batLeistung','batLaufzeit']
+  .forEach(id=>$(id).addEventListener('input',update));
+['pvActive','batActive','neaActive']
+  .forEach(id=>$(id).addEventListener('change',update));
+window.addEventListener('resize',update);
+update();
+</script>
+</body>
+</html>
